@@ -133,17 +133,19 @@ int main() {
 
 							Eigen::VectorXd poly_coeff = polyfit(points_ex, points_ey, 3);
 
-							double cte = polyeval(poly_coeff, px) - py;
+							// TODO review error calc
+							double cte = polyeval(poly_coeff, px);
 							// Orientation Error
-							double epsi = -atan(poly_coeff(1)) + psi;
+							double epsi = -atan(poly_coeff(1));
 
 							Eigen::VectorXd state(6);
 							state << px, py, psi, v, cte, epsi;
 
 							auto res = mpc.Solve(state, poly_coeff);
-							double steer_value = res[6];
-							double throttle_value = res[7];
+							double steer_value = res[0];
+							double throttle_value = res[1];
 
+							std::cout << "RES:" << res[0] << std::endl;
 							json msgJson;
 							// NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
 							// Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
@@ -151,27 +153,13 @@ int main() {
 							msgJson["throttle"] = throttle_value;
 
 							//Display the MPC predicted trajectory
-							vector<double> mpc_x_vals;
-							vector<double> mpc_y_vals;
-
-							//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-							// the points in the simulator are connected by a Green line
-							for (int i = 1; i < ptsx.size();i++) {
-								mpc_x_vals.push_back(res[0 + i]);
-								mpc_y_vals.push_back(res[1 + i]);
-							}
-							msgJson["mpc_x"] = mpc_x_vals;
-							msgJson["mpc_y"] = mpc_y_vals;
-
-							//Display the waypoints/reference line
-							vector<double> next_x_vals;
-							vector<double> next_y_vals;
+							msgJson["mpc_x"] = mpc.predicted_x;
+							msgJson["mpc_y"] = mpc.predicted_y;
 
 							//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
 							// the points in the simulator are connected by a Yellow line
-
-							msgJson["next_x"] = next_x_vals;
-							msgJson["next_y"] = next_y_vals;
+							msgJson["next_x"] = points_x;
+							msgJson["next_y"] = points_y;
 
 							auto msg = "42[\"steer\"," + msgJson.dump() + "]";
 							std::cout << msg << std::endl;

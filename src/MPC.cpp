@@ -113,10 +113,8 @@ public:
 			AD<double> delta0 = vars[delta_start + t - 1];
 			AD<double> a0 = vars[a_start + t - 1];
 
-			// Linear model
-			AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-			AD<double> psides0 = CppAD::atan(coeffs[1]);
-
+			AD<double> f0 = coeffs[0] + coeffs[1]*x0 + coeffs[2]*x0*x0 + coeffs[3]*x0*x0*x0;
+			AD<double> psides0 = CppAD::atan(3*coeffs[3]*x0*x0 + 2*coeffs[2]*x0 + coeffs[1]);
 			// Here's `x` to get you started.
 			// The idea here is to constraint this value to be 0.
 			//
@@ -175,7 +173,27 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
 	Dvector vars_lowerbound(n_vars);
 	Dvector vars_upperbound(n_vars);
-	// TODO: Set lower and upper limits for variables.
+    // Set all non-actuators upper and lowerlimits
+    // to the max negative and positive values.
+    for (int i = 0; i < delta_start; i++) {
+        vars_lowerbound[i] = -1.0e19;
+        vars_upperbound[i] = 1.0e19;
+    }
+
+    // The upper and lower limits of delta are set to -25 and 25
+    // degrees (values in radians).
+    // NOTE: Feel free to change this to something else.
+    for (int i = delta_start; i < a_start; i++) {
+        vars_lowerbound[i] = -0.436332;
+        vars_upperbound[i] = 0.436332;
+    }
+
+    // Acceleration/decceleration upper and lower limits.
+    // NOTE: Feel free to change this to something else.
+    for (int i = a_start; i < n_vars; i++) {
+        vars_lowerbound[i] = -1.0;
+        vars_upperbound[i] = 1.0;
+    }
 
 	// Lower and upper limits for the constraints
 	// Should be 0 besides initial state.
@@ -230,10 +248,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 	auto cost = solution.obj_value;
 	std::cout << "Cost " << cost << std::endl;
 
-	// TODO: Return the first actuator values. The variables can be accessed with
-	// `solution.x[i]`.
-	return {solution.x[x_start + 1], solution.x[y_start + 1],
-		solution.x[psi_start + 1], solution.x[v_start + 1],
-		solution.x[cte_start + 1], solution.x[epsi_start + 1],
-		solution.x[delta_start], solution.x[a_start]};
+	for (int i = 0; i < N; i++) {
+		predicted_x.push_back(solution.x[x_start + i]);
+		predicted_y.push_back(solution.x[y_start + i]);
+	}
+	return {solution.x[delta_start], solution.x[a_start]};
 }
