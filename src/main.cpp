@@ -107,8 +107,7 @@ int main() {
 							 * Both are in between [-1, 1].
 							 *
 							 */
-							//kinematic model of the car
-							//As there's 100ms latency, first we estimate next state of the car
+							// TODO, review kinematic model
 							double dt = 0.1;
 							double Lf = 2.67;
 							double next_px = px + v*cos(psi)*dt;
