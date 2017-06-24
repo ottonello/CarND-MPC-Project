@@ -110,21 +110,21 @@ int main() {
 							//kinematic model of the car
 							//As there's 100ms latency, first we estimate next state of the car
 							double dt = 0.1;
-							px = px + v*cos(psi)*dt;
-							py = py + v*sin(psi)*dt;
 							double Lf = 2.67;
-							psi = psi - v/Lf*steering_angle*dt;
-							v = v + throttle*dt;
+							double next_px = px + v*cos(psi)*dt;
+							double next_py = py + v*sin(psi)*dt;
+							double next_psi = psi - v/Lf*steering_angle*dt;
+							double next_v = v + throttle*dt;
 
 							//then convert map coordinates to car coordinates
 							vector<double> points_x;
 							vector<double> points_y;
 							for (int i = 0; i < ptsx.size(); i++) {
-								const double map_x = ptsx[i] - px;
-								const double map_y = ptsy[i] - py;
+								const double map_x = ptsx[i] - next_px;
+								const double map_y = ptsy[i] - next_py;
 
-								points_x.push_back( map_x*cos(psi) + map_y*sin(psi));
-								points_y.push_back(-map_x*sin(psi) + map_y*cos(psi));
+								points_x.push_back( map_x*cos(next_psi) + map_y*sin(next_psi));
+								points_y.push_back(-map_x*sin(next_psi) + map_y*cos(next_psi));
 							}
 
 							//After taht, we fit the x and y values to a 3rd degree poly
@@ -134,12 +134,12 @@ int main() {
 							Eigen::VectorXd poly_coeff = polyfit(points_ex, points_ey, 3);
 
 							// TODO review error calc
-							double cte = polyeval(poly_coeff, px);
+							double cte = polyeval(poly_coeff, 0);
 							// Orientation Error
 							double epsi = -atan(poly_coeff(1));
 
 							Eigen::VectorXd state(6);
-							state << px, py, psi, v, cte, epsi;
+							state << 0, 0, 0, next_v, cte, epsi;
 
 							auto res = mpc.Solve(state, poly_coeff);
 							double steer_value = res[0];

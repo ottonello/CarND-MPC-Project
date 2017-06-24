@@ -127,7 +127,7 @@ public:
 			// epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
 			fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
 			fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-			fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+			fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
 			fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
 			fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
 			fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
@@ -171,6 +171,14 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 		vars[i] = 0;
 	}
 
+	// Set the initial variable values
+	vars[x_start] = x;
+	vars[y_start] = y;
+	vars[psi_start] = psi;
+	vars[v_start] = v;
+	vars[cte_start] = cte;
+	vars[epsi_start] = epsi;
+
 	Dvector vars_lowerbound(n_vars);
 	Dvector vars_upperbound(n_vars);
     // Set all non-actuators upper and lowerlimits
@@ -203,14 +211,19 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 		constraints_lowerbound[i] = 0;
 		constraints_upperbound[i] = 0;
 	}
+	constraints_lowerbound[x_start] = x;
+	constraints_lowerbound[y_start] = y;
+	constraints_lowerbound[psi_start] = psi;
+	constraints_lowerbound[v_start] = v;
+	constraints_lowerbound[cte_start] = cte;
+	constraints_lowerbound[epsi_start] = epsi;
 
-	// Set the initial variable values
-	vars[x_start] = x;
-	vars[y_start] = y;
-	vars[psi_start] = psi;
-	vars[v_start] = v;
-	vars[cte_start] = cte;
-	vars[epsi_start] = epsi;
+	constraints_upperbound[x_start] = x;
+	constraints_upperbound[y_start] = y;
+	constraints_upperbound[psi_start] = psi;
+	constraints_upperbound[v_start] = v;
+	constraints_upperbound[cte_start] = cte;
+	constraints_upperbound[epsi_start] = epsi;
 
 	// object that computes objective and constraints
 	FG_eval fg_eval(coeffs);
@@ -248,6 +261,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 	auto cost = solution.obj_value;
 	std::cout << "Cost " << cost << std::endl;
 
+	predicted_x.clear();
+	predicted_y.clear();
 	for (int i = 0; i < N; i++) {
 		predicted_x.push_back(solution.x[x_start + i]);
 		predicted_y.push_back(solution.x[y_start + i]);
