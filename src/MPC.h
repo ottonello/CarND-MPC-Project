@@ -26,8 +26,8 @@ const double Lf = 2.67;
 const double ref_v = 60;
 
 // Constants affecting error calculation
-const double delta_factor = 200;
-const double delta_gap_factor = 1000;
+const double delta_factor = 1000;
+const double delta_gap_factor = 1400;
 
 class MPC {
  public:
