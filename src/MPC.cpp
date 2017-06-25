@@ -5,25 +5,7 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
-size_t N = 10;
-double dt = 0.1;
-
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-
-// Both the reference cross track and orientation errors are 0.
-// The reference velocity is set to 40 mph.
-double ref_v = 60;
+// Most constants moved into MPC.h for convenience!
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -64,13 +46,13 @@ public:
 
 		// Minimize the use of actuators.
 		for (int t = 0; t < N - 1; t++) {
-			fg[0] += 200 * CppAD::pow(vars[delta_start + t], 2);
+			fg[0] += delta_factor * CppAD::pow(vars[delta_start + t], 2);
 			fg[0] += CppAD::pow(vars[a_start + t], 2);
 		}
 
 		// Minimize the value gap between sequential actuations.
 		for (int t = 0; t < N - 2; t++) {
-			fg[0] += 300 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+			fg[0] += delta_gap_factor * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
 			fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
 		}
 

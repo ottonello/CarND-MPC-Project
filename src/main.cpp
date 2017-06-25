@@ -113,8 +113,6 @@ int main() {
 
 							// Using vehicle model, try to predict the next position taking into account
 							// existing latency
-							double dt = 0.1;
-							double Lf = 2.67;
 							double next_psi = psi - v/Lf*steering_angle*dt;
 							double c = cos(next_psi);
 							double s = sin(next_psi);
