@@ -47,6 +47,14 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
 	return result;
 }
 
+double polyeval_d(Eigen::VectorXd coeffs, double x) {
+	double result = 0.0;
+	for (int i = 1; i < coeffs.size(); i++) {
+		result += coeffs[i] * (i) * pow(x, i-1);
+	}
+	return result;
+}
+
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
@@ -80,6 +88,8 @@ int main() {
 	h.onMessage(
 			[&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 					uWS::OpCode opCode) {
+				const clock_t begin_time = clock();
+
 				// "42" at the start of the message means there's a websocket message event.
 				// The 4 signifies a websocket message
 				// The 2 signifies a websocket event
@@ -101,18 +111,16 @@ int main() {
 							double steering_angle = j[1]["steering_angle"];
 							double throttle = j[1]["throttle"];
 
-							/*
-							 * TODO: Calculate steering angle and throttle using MPC.
-							 *
-							 * Both are in between [-1, 1].
-							 *
-							 */
-							// TODO, review kinematic model
+							// Using vehicle model, try to predict the next position taking into account
+							// existing latency
 							double dt = 0.1;
 							double Lf = 2.67;
-							double next_px = px + v*cos(psi)*dt;
-							double next_py = py + v*sin(psi)*dt;
 							double next_psi = psi - v/Lf*steering_angle*dt;
+							double c = cos(next_psi);
+							double s = sin(next_psi);
+							double next_px = px + v * c * dt;
+							double next_py = py + v * s * dt;
+
 							double next_v = v + throttle*dt;
 
 							//then convert map coordinates to car coordinates
@@ -121,22 +129,21 @@ int main() {
 							for (int i = 0; i < ptsx.size(); i++) {
 								const double map_x = ptsx[i] - next_px;
 								const double map_y = ptsy[i] - next_py;
-
-								points_x.push_back( map_x*cos(next_psi) + map_y*sin(next_psi));
-								points_y.push_back(-map_x*sin(next_psi) + map_y*cos(next_psi));
+								points_x.push_back( map_x*c + map_y*s);
+								points_y.push_back(-map_x*s + map_y*c);
 							}
 
-							//After taht, we fit the x and y values to a 3rd degree poly
+							// Fit the x and y values to a 3rd degree poly
 							Eigen::VectorXd points_ex = Eigen::VectorXd::Map(points_x.data(), points_x.size());
 							Eigen::VectorXd points_ey = Eigen::VectorXd::Map(points_y.data(), points_y.size());
-
 							Eigen::VectorXd poly_coeff = polyfit(points_ex, points_ey, 3);
 
 							// TODO review error calc
 							double cte = polyeval(poly_coeff, 0);
 							// Orientation Error
-							double epsi = -atan(poly_coeff(1));
+							double epsi = next_psi - atan(polyeval_d(poly_coeff, 0));
 
+							// TODO review state here
 							Eigen::VectorXd state(6);
 							state << 0, 0, 0, next_v, cte, epsi;
 
@@ -179,6 +186,7 @@ int main() {
 						std::string msg = "42[\"manual\",{}]";
 						ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 					}
+					std::cout << "Time spent: "<< float( clock () - begin_time ) /  CLOCKS_PER_SEC << std::endl;
 				}
 			});
 
