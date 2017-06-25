@@ -29,7 +29,6 @@ public:
 
 	typedef CPPAD_TESTVECTOR(AD<double>)ADvector;
 	void operator()(ADvector& fg, const ADvector& vars) {
-		// TODO: implement MPC
 		// `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
 		// NOTE: You'll probably go back and forth between this function and
 		// the Solver function below.
@@ -59,8 +58,6 @@ public:
 		//
 		// Setup Constraints
 		//
-		// NOTE: In this section you'll setup the model constraints.
-
 		// Initial constraints
 		//
 		// We add 1 to each of the starting indices due to cost being located at
@@ -130,13 +127,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 	size_t i;
 	typedef CPPAD_TESTVECTOR(double)Dvector;
 
-	// TODO: Set the number of model variables (includes both states and inputs).
-	// For example: If the state is a 4 element vector, the actuators is a 2
-	// element vector and there are 10 timesteps. The number of variables is:
-	//
-	// 4 * 10 + 2 * 9
+	// Set the number of model variables (includes both states and inputs).
 	size_t n_vars = 6 * N + 2 * (N - 1);
-	// TODO: Set the number of constraints
+	// Set the number of constraints
 	size_t n_constraints = 6 * N;
 
 	double x = state[0];
